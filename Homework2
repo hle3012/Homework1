@@ -1,0 +1,375 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMZyYbxgPvVpLX/U49TpuyE",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/hle3012/Homework1/blob/main/Homework2\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install scikit-fuzzy"
+      ],
+      "metadata": {
+        "id": "htWd6DedBF2E"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import numpy as np\n",
+        "import skfuzzy as fuzzy\n",
+        "from skfuzzy import control as ctrl\n",
+        "\n",
+        "distance = ctrl.Antecedent(np.arange(0, 21, 1), 'distance')\n",
+        "traffic = ctrl.Antecedent(np.arange(0, 11, 1), 'traffic')\n",
+        "demand = ctrl.Antecedent(np.arange(0, 11, 1), 'demand')\n",
+        "\n",
+        "price = ctrl.Consequent(np.arange(0, 101, 1), 'price')\n",
+        "\n",
+        "distance['short'] = fuzzy.trapmf(distance.universe, [0, 0, 5, 10])\n",
+        "distance['medium'] = fuzzy.trimf(distance.universe, [5, 10, 15])\n",
+        "distance['long'] = fuzzy.trapmf(distance.universe, [10, 15, 20, 20])\n",
+        "\n",
+        "traffic['low'] = fuzzy.trapmf(traffic.universe, [0, 0, 3, 5])\n",
+        "traffic['medium'] = fuzzy.trimf(traffic.universe, [3, 5, 8])\n",
+        "traffic['high'] = fuzzy.trapmf(traffic.universe, [6, 8, 10, 10])\n",
+        "\n",
+        "demand['low'] = fuzzy.trapmf(demand.universe, [0, 0, 3, 5])\n",
+        "demand['medium'] = fuzzy.trimf(demand.universe, [3, 5, 8])\n",
+        "demand['high'] = fuzzy.trapmf(demand.universe, [6, 8, 10, 10])\n",
+        "\n",
+        "price['low'] = fuzzy.trimf(price.universe, [0, 25, 50])\n",
+        "price['medium'] = fuzzy.trimf(price.universe, [25, 50, 75])\n",
+        "price['high'] = fuzzy.trimf(price.universe, [50, 75, 100])\n",
+        "\n",
+        "rules = [\n",
+        "    ctrl.Rule(distance['short'] & traffic['low'] & demand['low'], price['low']),\n",
+        "    ctrl.Rule(distance['short'] & traffic['low'] & demand['medium'], price['low']),\n",
+        "    ctrl.Rule(distance['short'] & traffic['low'] & demand['high'], price['medium']),\n",
+        "    ctrl.Rule(distance['short'] & traffic['medium'] & demand['low'], price['low']),\n",
+        "    ctrl.Rule(distance['short'] & traffic['medium'] & demand['medium'], price['medium']),\n",
+        "    ctrl.Rule(distance['short'] & traffic['medium'] & demand['high'], price['medium']),\n",
+        "    ctrl.Rule(distance['short'] & traffic['high'] & demand['low'], price['medium']),\n",
+        "    ctrl.Rule(distance['short'] & traffic['high'] & demand['medium'], price['high']),\n",
+        "    ctrl.Rule(distance['short'] & traffic['high'] & demand['high'], price['high']),\n",
+        "\n",
+        "    ctrl.Rule(distance['medium'] & traffic['low'] & demand['low'], price['low']),\n",
+        "    ctrl.Rule(distance['medium'] & traffic['low'] & demand['medium'], price['medium']),\n",
+        "    ctrl.Rule(distance['medium'] & traffic['medium'] & demand['medium'], price['medium']),\n",
+        "    ctrl.Rule(distance['medium'] & traffic['high'] & demand['high'], price['high']),\n",
+        "\n",
+        "    ctrl.Rule(distance['long'] & traffic['low'] & demand['low'], price['medium']),\n",
+        "    ctrl.Rule(distance['long'] & traffic['low'] & demand['medium'], price['medium']),\n",
+        "    ctrl.Rule(distance['long'] & traffic['low'] & demand['high'], price['high']),\n",
+        "    ctrl.Rule(distance['long'] & traffic['medium'] & demand['low'], price['medium']),\n",
+        "    ctrl.Rule(distance['long'] & traffic['medium'] & demand['medium'], price['high']),\n",
+        "    ctrl.Rule(distance['long'] & traffic['medium'] & demand['high'], price['high']),\n",
+        "    ctrl.Rule(distance['long'] & traffic['high'] & demand['high'], price['high'])\n",
+        "]\n",
+        "\n",
+        "grab_ctrl = ctrl.ControlSystem(rules)\n",
+        "grab_sim = ctrl.ControlSystemSimulation(grab_ctrl)\n",
+        "\n",
+        "#test\n",
+        "grab_sim.input['distance'] = 12\n",
+        "grab_sim.input['traffic'] = 7\n",
+        "grab_sim.input['demand'] = 8\n",
+        "\n",
+        "grab_sim.compute()\n",
+        "\n",
+        "print(f\"Giá cước cuối cùng: {grab_sim.output['price']:.2f} VNĐ\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "jq1ddUupJSYH",
+        "outputId": "63af5a3b-7340-44aa-cea7-941b95fcbaa6"
+      },
+      "execution_count": 9,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Giá cước cuối cùng: 75.00 VNĐ\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import numpy as np\n",
+        "import skfuzzy as fuzzy\n",
+        "from skfuzzy import control as ctrl\n",
+        "\n",
+        "rating = ctrl.Antecedent(np.arange(1.0, 5.1, 0.1), 'rating')\n",
+        "sales_vol = ctrl.Antecedent(np.arange(0, 101, 1), 'sales_volume')\n",
+        "profit_margin = ctrl.Antecedent(np.arange(0, 101, 1), 'profit_margin')\n",
+        "season = ctrl.Antecedent(np.arange(0, 101, 1), 'season_event')\n",
+        "competitor = ctrl.Antecedent(np.arange(0, 101, 1), 'competitor_discount')\n",
+        "\n",
+        "discount = ctrl.Consequent(np.arange(0, 71, 1), 'discount')\n",
+        "\n",
+        "rating['low'] = fuzzy.trapmf(rating.universe, [1.0, 1.0, 3.5, 4.0])\n",
+        "rating['medium'] = fuzzy.trimf(rating.universe, [3.8, 4.25, 4.6])\n",
+        "rating['high'] = fuzzy.trapmf(rating.universe, [4.4, 4.8, 5.0, 5.0])\n",
+        "\n",
+        "sales_vol['low'] = fuzzy.trimf(sales_vol.universe, [0, 0, 40])\n",
+        "sales_vol['medium'] = fuzzy.trimf(sales_vol.universe, [20, 50, 80])\n",
+        "sales_vol['high'] = fuzzy.trimf(sales_vol.universe, [60, 100, 100])\n",
+        "\n",
+        "profit_margin['low'] = fuzzy.trimf(profit_margin.universe, [0, 0, 30])\n",
+        "profit_margin['medium'] = fuzzy.trimf(profit_margin.universe, [20, 50, 70])\n",
+        "profit_margin['high'] = fuzzy.trimf(profit_margin.universe, [60, 100, 100])\n",
+        "\n",
+        "season['none'] = fuzzy.trimf(season.universe, [0, 0, 30])\n",
+        "season['medium'] = fuzzy.trimf(season.universe, [20, 50, 80])\n",
+        "season['high'] = fuzzy.trimf(season.universe, [60, 100, 100])\n",
+        "\n",
+        "competitor['low'] = fuzzy.trimf(competitor.universe, [0, 0, 30])\n",
+        "competitor['medium'] = fuzzy.trimf(competitor.universe, [20, 50, 80])\n",
+        "competitor['high'] = fuzzy.trimf(competitor.universe, [60, 100, 100])\n",
+        "\n",
+        "discount['very_low'] = fuzzy.trapmf(discount.universe, [0, 0, 3, 6])\n",
+        "discount['low'] = fuzzy.trimf(discount.universe, [4, 7.5, 12])\n",
+        "discount['medium'] = fuzzy.trimf(discount.universe, [10, 15, 25])\n",
+        "discount['high'] = fuzzy.trimf(discount.universe, [20, 30, 45])\n",
+        "discount['very_high'] = fuzzy.trapmf(discount.universe, [35, 50, 70, 70])\n",
+        "\n",
+        "rule1 = ctrl.Rule(rating['high'] & sales_vol['high'] & profit_margin['high'], discount['very_low'])\n",
+        "rule2 = ctrl.Rule(rating['low'] & sales_vol['low'] & profit_margin['high'], discount['high'])\n",
+        "rule3 = ctrl.Rule(season['high'] & competitor['high'], discount['very_high'])\n",
+        "rule4 = ctrl.Rule(rating['medium'] & sales_vol['medium'] & profit_margin['medium'], discount['medium'])\n",
+        "rule5 = ctrl.Rule(competitor['low'] & profit_margin['low'] & sales_vol['high'], discount['very_low'])\n",
+        "rule6 = ctrl.Rule(rating['low'] & season['none'], discount['medium'])\n",
+        "rule7 = ctrl.Rule(sales_vol['low'] & profit_margin['low'], discount['very_high'])\n",
+        "\n",
+        "shopee_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6, rule7])\n",
+        "shopee_sim = ctrl.ControlSystemSimulation(shopee_ctrl)\n",
+        "\n",
+        "#test\n",
+        "shopee_sim.input['rating'] = 4.3\n",
+        "shopee_sim.input['sales_volume'] = 50\n",
+        "shopee_sim.input['profit_margin'] = 15\n",
+        "shopee_sim.input['season_event'] = 85\n",
+        "shopee_sim.input['competitor_discount'] = 80\n",
+        "\n",
+        "shopee_sim.compute()\n",
+        "final_discount = shopee_sim.output['discount']\n",
+        "\n",
+        "print(\"=\" * 50)\n",
+        "print(\"TÌNH HUỐNG: ĐỒNG HỒ XA XỈ (SHOPEE 11.11)\")\n",
+        "print(\"-\" * 50)\n",
+        "print(f\"- Uy tín cửa hàng: 4.3 sao (Trung bình)\")\n",
+        "print(f\"- Lượng bán: Trung bình | Biên lợi nhuận: Thấp\")\n",
+        "print(f\"- Sự kiện: 11.11 (Cao)  | Đối thủ: Khuyến mãi mạnh (Cao)\")\n",
+        "print(\"-\" * 50)\n",
+        "print(f\"=> CHIẾT KHẤU ĐỀ XUẤT TỪ HỆ THỐNG: {final_discount:.2f} %\")\n",
+        "print(\"=\" * 50)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "7RvjcFv7I2ul",
+        "outputId": "1fe32c7b-894a-45bc-caca-b9cffbf737e9"
+      },
+      "execution_count": 10,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "==================================================\n",
+            "TÌNH HUỐNG: ĐỒNG HỒ XA XỈ (SHOPEE 11.11)\n",
+            "--------------------------------------------------\n",
+            "- Uy tín cửa hàng: 4.3 sao (Trung bình)\n",
+            "- Lượng bán: Trung bình | Biên lợi nhuận: Thấp\n",
+            "- Sự kiện: 11.11 (Cao)  | Đối thủ: Khuyến mãi mạnh (Cao)\n",
+            "--------------------------------------------------\n",
+            "=> CHIẾT KHẤU ĐỀ XUẤT TỪ HỆ THỐNG: 54.30 %\n",
+            "==================================================\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import numpy as np\n",
+        "import skfuzzy as fuzz\n",
+        "from skfuzzy import control as ctrl\n",
+        "\n",
+        "Demand = ctrl.Antecedent(np.arange(0, 11, 1), 'demand')\n",
+        "Competition = ctrl.Antecedent(np.arange(0, 11, 1), 'competition')\n",
+        "Reputation = ctrl.Antecedent(np.arange(0, 11, 1), 'reputation')\n",
+        "Profit = ctrl.Antecedent(np.arange(0, 11, 1), 'profit')\n",
+        "Season = ctrl.Antecedent(np.arange(0, 11, 1), 'season')\n",
+        "\n",
+        "Discount = ctrl.Consequent(np.arange(0, 71, 1), 'discount')\n",
+        "\n",
+        "for var in [Demand, Competition, Reputation, Profit, Season]:\n",
+        "    var['low'] = fuzz.trimf(var.universe, [0, 0, 5])\n",
+        "    var['medium'] = fuzz.trimf(var.universe, [0, 5, 10])\n",
+        "    var['high'] = fuzz.trimf(var.universe, [5, 10, 10])\n",
+        "\n",
+        "Discount['very_low'] = fuzz.trimf(Discount.universe, [0, 0, 10])\n",
+        "Discount['low'] = fuzz.trimf(Discount.universe, [5, 15, 25])\n",
+        "Discount['medium'] = fuzz.trimf(Discount.universe, [20, 30, 40])\n",
+        "Discount['high'] = fuzz.trimf(Discount.universe, [35, 50, 60])\n",
+        "Discount['very_high'] = fuzz.trimf(Discount.universe, [55, 70, 70])\n",
+        "\n",
+        "rules = [\n",
+        "ctrl.Rule(Demand['high'] & Competition['low'] & Profit['low'], Discount['very_low']),\n",
+        "ctrl.Rule(Demand['low'] & Competition['high'] & Profit['high'], Discount['high']),\n",
+        "ctrl.Rule(Reputation['high'] & Profit['medium'] & Season['high'], Discount['medium']),\n",
+        "ctrl.Rule(Competition['high'] & Season['high'] & Profit['high'], Discount['very_high']),\n",
+        "ctrl.Rule(Reputation['low'] & Demand['medium'] & Profit['low'], Discount['medium']),\n",
+        "ctrl.Rule(Demand['high'] & Season['low'] & Competition['low'], Discount['very_low']),\n",
+        "ctrl.Rule(Profit['high'] & Competition['medium'] & Season['medium'], Discount['medium']),\n",
+        "]\n",
+        "\n",
+        "discount_ctrl = ctrl.ControlSystem(rules)\n",
+        "sim = ctrl.ControlSystemSimulation(discount_ctrl)\n",
+        "\n",
+        "sim.input['demand'] = 8\n",
+        "sim.input['competition'] = 5\n",
+        "sim.input['reputation'] = 6\n",
+        "sim.input['profit'] = 8\n",
+        "sim.input['season'] = 9\n",
+        "\n",
+        "sim.compute()\n",
+        "\n",
+        "print(\"Discount (%):\", sim.output['discount'])"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "kCBLqN7UKNSf",
+        "outputId": "39787b18-b806-4807-b6d3-06fd35696018"
+      },
+      "execution_count": 14,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Discount (%): 29.999999999999996\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import numpy as np\n",
+        "import skfuzzy as fuzz\n",
+        "from skfuzzy import control as ctrl\n",
+        "\n",
+        "OrderDensity = ctrl.Antecedent(np.arange(0, 11, 1), 'order_density')\n",
+        "Urgency = ctrl.Antecedent(np.arange(0, 11, 1), 'urgency')\n",
+        "Load = ctrl.Antecedent(np.arange(0, 11, 1), 'load')\n",
+        "Traffic = ctrl.Antecedent(np.arange(0, 11, 1), 'traffic')\n",
+        "Profit = ctrl.Antecedent(np.arange(0, 11, 1), 'profit')\n",
+        "\n",
+        "Orders = ctrl.Consequent(np.arange(0, 11, 1), 'orders')\n",
+        "Priority = ctrl.Consequent(np.arange(0, 11, 1), 'priority')\n",
+        "\n",
+        "for var in [OrderDensity, Urgency, Load, Traffic, Profit]:\n",
+        "    var['low'] = fuzz.trimf(var.universe, [0, 0, 5])\n",
+        "    var['medium'] = fuzz.trimf(var.universe, [0, 5, 10])\n",
+        "    var['high'] = fuzz.trimf(var.universe, [5, 10, 10])\n",
+        "\n",
+        "Orders['few'] = fuzz.trimf(Orders.universe, [0, 0, 5])\n",
+        "Orders['some'] = fuzz.trimf(Orders.universe, [2, 5, 8])\n",
+        "Orders['many'] = fuzz.trimf(Orders.universe, [5, 10, 10])\n",
+        "\n",
+        "Priority['low'] = fuzz.trimf(Priority.universe, [0, 0, 5])\n",
+        "Priority['medium'] = fuzz.trimf(Priority.universe, [0, 5, 10])\n",
+        "Priority['high'] = fuzz.trimf(Priority.universe, [5, 10, 10])\n",
+        "\n",
+        "rule1 = ctrl.Rule(OrderDensity['high'] & Load['low'] & Traffic['low'], Orders['many'])\n",
+        "rule2 = ctrl.Rule(OrderDensity['medium'] & Traffic['high'] & Urgency['medium'], Orders['some'])\n",
+        "rule3 = ctrl.Rule(Load['high'] & OrderDensity['high'] & Profit['medium'], Orders['some'])\n",
+        "rule4 = ctrl.Rule(OrderDensity['low'] & Urgency['high'] & Traffic['medium'], Orders['some'])\n",
+        "rule5 = ctrl.Rule(Profit['high'] & Urgency['high'] & Traffic['high'], Orders['some'])\n",
+        "rule6 = ctrl.Rule(Urgency['high'] & Profit['high'], Priority['high'])\n",
+        "rule7 = ctrl.Rule(Urgency['medium'] & Traffic['medium'], Priority['medium'])\n",
+        "rule8 = ctrl.Rule(Urgency['low'] & OrderDensity['high'] & Profit['low'], Priority['low'])\n",
+        "rule9 = ctrl.Rule(OrderDensity['high'] & Urgency['medium'] & Traffic['medium'], Orders['many'])\n",
+        "\n",
+        "system = ctrl.ControlSystem([\n",
+        "    rule1, rule2, rule3, rule4, rule5,\n",
+        "    rule6, rule7, rule8, rule9\n",
+        "])\n",
+        "\n",
+        "sim = ctrl.ControlSystemSimulation(system)\n",
+        "\n",
+        "#test\n",
+        "sim.input['order_density'] = 9\n",
+        "sim.input['urgency'] = 5\n",
+        "sim.input['load'] = 2\n",
+        "sim.input['traffic'] = 5\n",
+        "sim.input['profit'] = 5\n",
+        "\n",
+        "sim.compute()\n",
+        "\n",
+        "print(\"=\" * 40)\n",
+        "print(\"KẾT QUẢ ĐIỀU PHỐI ĐƠN HÀNG\")\n",
+        "print(\"-\" * 40)\n",
+        "print(f\"Số lượng Orders cần gộp: {sim.output['orders']:.2f}\")\n",
+        "print(f\"Mức độ ưu tiên (Priority): {sim.output['priority']:.2f}\")\n",
+        "print(\"=\" * 40)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "zxDVGujKOFwy",
+        "outputId": "99508b79-45a4-4ce6-9859-366167a68f3c"
+      },
+      "execution_count": 13,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "========================================\n",
+            "KẾT QUẢ ĐIỀU PHỐI ĐƠN HÀNG\n",
+            "----------------------------------------\n",
+            "Số lượng Orders cần gộp: 8.28\n",
+            "Mức độ ưu tiên (Priority): 5.00\n",
+            "========================================\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
